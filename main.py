@@ -8,16 +8,19 @@ from config import topics
 
 connectors = dict()
 for topic, description in topics:
-    g = Gauge(name=topic.replace('/', '_').replace('openWB_', ''), documentation=description, labelnames=['metric', 'device_id', 'topic'])
+    topic_name = topic.replace('/', '_').replace('openWB_', '')
     topic_length = len(topic.split('/'))
     device_id = None
     if topic_length == 3:
         _unused, metric, measurement = topic.split('/')
+        g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'topic'])
+        g.labels(metric=metric, topic=topic)
     elif topic_length == 4:
         _unused, metric, device_id, measurement = topic.split('/')
+        g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'device_id', 'topic'])
+        g.labels(metric=metric, device_id=device_id, topic=topic)
     else:
         raise Exception(f"Unknown topic length: {topic}")
-    g.labels(metric=metric, device_id=device_id, topic=topic)
     connectors[topic] = g
 
 
