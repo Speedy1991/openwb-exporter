@@ -25,6 +25,7 @@ topics = [
     ("openWB/global/WHouseConsumption", "Hausverbrauch (errechnet aus PV, EVU, EV, Speicher) in Watt"),
     ("openWB/global/kWhCounterAllChargePoints", ""),
 
+    ("openWB/lp/1/%Soc", "Aktueller SoC1"),
     ("openWB/lp/1/APhase1", "Stromstärke in Ampere an Phase 1 an LP1"),
     ("openWB/lp/1/APhase2", "Stromstärke in Ampere an Phase 2 an LP1"),
     ("openWB/lp/1/APhase3", "Stromstärke in Ampere an Phase 3 an LP1"),
@@ -42,6 +43,7 @@ topics = [
     ("openWB/lp/1/kmCharged", ""),
     ("openWB/lp/1/plugStartkWh", ""),
 
+    ("openWB/lp/2/%Soc", "Aktueller SoC2"),
     ("openWB/lp/2/APhase1", "Stromstärke in Ampere an Phase 1 an LP2"),
     ("openWB/lp/2/APhase2", "Stromstärke in Ampere an Phase 2 an LP2"),
     ("openWB/lp/2/APhase3", "Stromstärke in Ampere an Phase 3 an LP2"),

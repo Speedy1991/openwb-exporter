@@ -15,7 +15,7 @@ def setup_collectors():
     prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
     for topic, description in topics:
-        topic_name = topic.replace('/', '_').replace('openWB_', '')
+        topic_name = topic.replace('/', '_').replace('openWB_', '').replace('%', 'percentage_')
         topic_length = len(topic.split('/'))
         if topic_length == 3:
             _unused, metric, measurement = topic.split('/')
