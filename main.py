@@ -39,8 +39,9 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     print(msg.topic + " " + str(msg.payload))
-    connector = collectors.get(msg.topic)
-    connector.set(msg.payload)
+    collector = collectors.get(msg.topic)
+    collector.set(msg.payload)
+    collector.set_to_current_time()
 
 
 def start():
