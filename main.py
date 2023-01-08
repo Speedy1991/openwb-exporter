@@ -7,21 +7,27 @@ import prometheus_client
 from config import topics
 
 connectors = dict()
-for topic, description in topics:
-    topic_name = topic.replace('/', '_').replace('openWB_', '')
-    topic_length = len(topic.split('/'))
-    device_id = None
-    if topic_length == 3:
-        _unused, metric, measurement = topic.split('/')
-        g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'topic'])
-        g.labels(metric=metric, topic=topic)
-    elif topic_length == 4:
-        _unused, metric, device_id, measurement = topic.split('/')
-        g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'device_id', 'topic'])
-        g.labels(metric=metric, device_id=device_id, topic=topic)
-    else:
-        raise Exception(f"Unknown topic length: {topic}")
-    connectors[topic] = g
+
+
+def setup_collectors():
+    prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
+    prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
+    prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
+
+    for topic, description in topics:
+        topic_name = topic.replace('/', '_').replace('openWB_', '')
+        topic_length = len(topic.split('/'))
+        if topic_length == 3:
+            _unused, metric, measurement = topic.split('/')
+            g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'topic'])
+            g.labels(metric=metric, topic=topic)
+        elif topic_length == 4:
+            _unused, metric, device_id, measurement = topic.split('/')
+            g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'device_id', 'topic'])
+            g.labels(metric=metric, device_id=device_id, topic=topic)
+        else:
+            raise Exception(f"Unknown topic length: {topic}")
+        connectors[topic] = g
 
 
 def on_connect(client, userdata, flags, rc):
@@ -37,15 +43,23 @@ def on_message(client, userdata, msg):
     connector.set(msg.payload)
 
 
-if __name__ == '__main__':
-    open_wb = os.environ['OPEN_WB']
-    prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
-    prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
-    prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
+def start():
+    open_wb = os.environ.get('OPEN_WB', None)
+    if not open_wb:
+        print('OPEN_WB environment must be set. E.g. OPEN_WB=openwb.fritz.box python main.py')
+        exit(1)
+    setup_collectors()
 
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    # Try to connect before we serve the metrics
+    client.connect(open_wb, 1883, 60)
     start_http_server(5555)
-    c = mqtt.Client()
-    c.on_connect = on_connect
-    c.on_message = on_message
-    c.connect(open_wb, 1883, 60)
-    c.loop_forever()
+
+    client.loop_forever()
+
+
+if __name__ == '__main__':
+    start()
