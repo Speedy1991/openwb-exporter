@@ -16,14 +16,14 @@ def setup_collectors():
 
     for topic, description in topics:
         topic_name = topic.replace('/', '_').replace('openWB_', '').replace('%', 'percentage_')
-        collectors[topic] = Gauge(name=topic_name, documentation=description, labelnames=["topic", "metric", "measurement"])
+        collectors[topic] = Gauge(name=topic_name, documentation=description, labelnames=["topic", "device", "measurement"])
 
     # Special stuff
-    collectors['special/autark/daily'] = Gauge('special_autark_daily', documentation='Autarkiegrad in Prozent (Daily)')
-    collectors['special/autark/live'] = Gauge('special_autark_live', documentation='Autarkiegrad in Prozent (Live)')
-    collectors['invert/pv/W'] = Gauge('invert_pv_W', documentation='Invertierte PV W')
-    collectors['special/total_kwh/daily'] = Gauge('special_total_kwh_daily', documentation='Kompletter täglicher Verbrauch in KW')
-    collectors['special/total_w/live'] = Gauge('special_total_kwh_live', documentation='Aktueller Verbrauch in W')
+    collectors['special/autark/daily'] = Gauge('special_autark_daily', documentation='Autarkiegrad in Prozent (Daily)', labelnames=["device"])
+    collectors['special/autark/live'] = Gauge('special_autark_live', documentation='Autarkiegrad in Prozent (Live)', labelnames=["device"])
+    collectors['invert/pv/W'] = Gauge('invert_pv_W', documentation='Invertierte PV W', labelnames=["device"])
+    collectors['special/total_kwh/daily'] = Gauge('special_total_kwh_daily', documentation='Kompletter täglicher Verbrauch in KW', labelnames=["device"])
+    collectors['special/total_w/live'] = Gauge('special_total_kwh_live', documentation='Aktueller Verbrauch in W', labelnames=["device"])
 
 
 def on_connect(client, userdata, flags, rc):
@@ -34,7 +34,11 @@ def on_connect(client, userdata, flags, rc):
 
 
 def _topic_to_tuple(topic):
-    return topic, topic.split('/')[1], topic.split('/')[-1]
+    device = topic.split('/')[1]
+    if device == 'global':
+        device = 'openWB'
+    measurement = topic.split('/')[-1]
+    return topic, device, measurement
 
 
 def _get_current_value(topic):
@@ -57,20 +61,20 @@ def on_message(client, userdata, msg):
     current_w = _get_current_value('openWB/evu/W')
 
     if current_w < 0:
-        collectors['special/autark/live'].set(1)
+        collectors['special/autark/live'].labels('openWB').set(1)
     elif current_w:
-        collectors['special/autark/live'].set(pv_w / (pv_w + current_w))
+        collectors['special/autark/live'].labels('openWB').set(pv_w / (pv_w + current_w))
 
-    collectors['invert/pv/W'].set(pv_w)
-    collectors['special/total_kwh/daily'].set(daily_total_kwh)
+    collectors['invert/pv/W'].labels('openWB').set(pv_w)
+    collectors['special/total_kwh/daily'].labels('openWB').set(daily_total_kwh)
 
     house_w_live = _get_current_value('openWB/global/WHouseConsumption')
     lp_w_live = _get_current_value('openWB/global/WAllChargePoints')
 
-    collectors['special/total_w/live'].set(house_w_live + lp_w_live)
+    collectors['special/total_w/live'].labels('openWB').set(house_w_live + lp_w_live)
 
     if daily_total_kwh and daily_evu_import_kwh:
-        collectors['special/autark/daily'].set((daily_total_kwh - daily_evu_import_kwh) / daily_total_kwh)
+        collectors['special/autark/daily'].labels('openWB').set((daily_total_kwh - daily_evu_import_kwh) / daily_total_kwh)
 
 
 def start():
