@@ -16,18 +16,9 @@ def setup_collectors():
 
     for topic, description in topics:
         topic_name = topic.replace('/', '_').replace('openWB_', '').replace('%', 'percentage_')
-        topic_length = len(topic.split('/'))
-        if topic_length == 3:
-            _unused, metric, measurement = topic.split('/')
-            g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'topic'])
-            g.labels(metric=metric, topic=topic)
-        elif topic_length == 4:
-            _unused, metric, device_id, measurement = topic.split('/')
-            g = Gauge(name=topic_name, documentation=description, labelnames=['metric', 'device_id', 'topic'])
-            g.labels(metric=metric, device_id=device_id, topic=topic)
-        else:
-            raise Exception(f"Unknown topic length: {topic}")
-        collectors[topic] = g
+        collectors[topic] = Gauge(name=topic_name, documentation=description, labelnames=["topic", "metric", "measurement"])
+
+    collectors['special/autark'] = Gauge('special_autark', documentation='Autarkiegrad in Prozent')
 
 
 def on_connect(client, userdata, flags, rc):
@@ -37,11 +28,28 @@ def on_connect(client, userdata, flags, rc):
         print("Subscribed to", topic)
 
 
+def _topic_to_tuple(topic):
+    return topic, topic.split('/')[1], topic.split('/')[-1]
+
+
+def _get_current_value(topic):
+    collector = collectors.get(topic)
+    return collector.labels(*_topic_to_tuple(topic))._value.get()
+
+
 def on_message(client, userdata, msg):
-    print(msg.topic + " " + str(msg.payload))
-    collector = collectors.get(msg.topic)
-    collector.set(msg.payload)
-    collector.set_to_current_time()
+    print('Message', msg.topic + " " + msg.payload.decode('utf-8'))
+    collector = collectors[msg.topic]
+    value = msg.payload.decode('utf-8')
+    collector.labels(*_topic_to_tuple(msg.topic)).set(value)
+
+    daily_all_charge_points_kwh = _get_current_value('openWB/global/DailyYieldAllChargePointsKwh')
+    daily_hausverbrauch_kwh = _get_current_value('openWB/global/DailyYieldHausverbrauchKwh')
+    daily_total_kwh = daily_hausverbrauch_kwh + daily_all_charge_points_kwh
+    daily_evu_import_kwh = _get_current_value('openWB/evu/DailyYieldImportKwh')
+    if not all([daily_total_kwh, daily_evu_import_kwh]):
+        return
+    collectors['special/autark'].set((daily_total_kwh - daily_evu_import_kwh) / daily_total_kwh)
 
 
 def start():
