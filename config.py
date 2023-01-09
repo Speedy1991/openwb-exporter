@@ -23,6 +23,7 @@ topics = [
     ("openWB/global/DailyYieldAllChargePointsKwh", ""),
     ("openWB/global/DailyYieldHausverbrauchKwh", ""),
     ("openWB/global/WHouseConsumption", "Hausverbrauch (errechnet aus PV, EVU, EV, Speicher) in Watt"),
+    ("openWB/global/WAllChargePoints", "Verbrauch aller Ladepunkte"),
     ("openWB/global/kWhCounterAllChargePoints", ""),
 
     ("openWB/lp/1/%Soc", "Aktueller SoC1"),
@@ -53,7 +54,7 @@ topics = [
     ("openWB/lp/2/VPhase1", "Spannung in Volt an Phase 1 an LP2"),
     ("openWB/lp/2/VPhase2", "Spannung in Volt an Phase 2 an LP2"),
     ("openWB/lp/2/VPhase3", "Spannung in Volt an Phase 3 an LP2"),
-    ("openWB/lp/2/W", "Ladeleistung in Watt an LP2 an LP2"),
+    ("openWB/lp/2/W", "Ladeleistung in Watt an LP2"),
     ("openWB/lp/2/kWhActualCharged", "Geladene kWh des aktuellen Ladevorgangs an LP2"),
     ("openWB/lp/2/kWhChargedSincePlugged", "Geladene kWh seit letztem anstecken an LP2"),
     ("openWB/lp/2/kWhCounter", "Zählerstand in Wh an LP2"),

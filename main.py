@@ -18,7 +18,12 @@ def setup_collectors():
         topic_name = topic.replace('/', '_').replace('openWB_', '').replace('%', 'percentage_')
         collectors[topic] = Gauge(name=topic_name, documentation=description, labelnames=["topic", "metric", "measurement"])
 
-    collectors['special/autark'] = Gauge('special_autark', documentation='Autarkiegrad in Prozent')
+    # Special stuff
+    collectors['special/autark/daily'] = Gauge('special_autark_daily', documentation='Autarkiegrad in Prozent (Daily)')
+    collectors['special/autark/live'] = Gauge('special_autark_live', documentation='Autarkiegrad in Prozent (Live)')
+    collectors['invert/pv/W'] = Gauge('invert_pv_W', documentation='Invertierte PV W')
+    collectors['special/total_kwh/daily'] = Gauge('special_total_kwh_daily', documentation='Kompletter täglicher Verbrauch in KW')
+    collectors['special/total_w/live'] = Gauge('special_total_kwh_live', documentation='Aktueller Verbrauch in W')
 
 
 def on_connect(client, userdata, flags, rc):
@@ -47,9 +52,25 @@ def on_message(client, userdata, msg):
     daily_hausverbrauch_kwh = _get_current_value('openWB/global/DailyYieldHausverbrauchKwh')
     daily_total_kwh = daily_hausverbrauch_kwh + daily_all_charge_points_kwh
     daily_evu_import_kwh = _get_current_value('openWB/evu/DailyYieldImportKwh')
-    if not all([daily_total_kwh, daily_evu_import_kwh]):
-        return
-    collectors['special/autark'].set((daily_total_kwh - daily_evu_import_kwh) / daily_total_kwh)
+
+    pv_w = abs(_get_current_value('openWB/pv/W'))
+    current_w = _get_current_value('openWB/evu/W')
+
+    if current_w < 0:
+        collectors['special/autark/live'].set(1)
+    elif current_w:
+        collectors['special/autark/live'].set(pv_w / (pv_w + current_w))
+
+    collectors['invert/pv/W'].set(pv_w)
+    collectors['special/total_kwh/daily'].set(daily_total_kwh)
+
+    house_w_live = _get_current_value('openWB/global/WHouseConsumption')
+    lp_w_live = _get_current_value('openWB/global/WAllChargePoints')
+
+    collectors['special/total_w/live'].set(house_w_live + lp_w_live)
+
+    if daily_total_kwh and daily_evu_import_kwh:
+        collectors['special/autark/daily'].set((daily_total_kwh - daily_evu_import_kwh) / daily_total_kwh)
 
 
 def start():
